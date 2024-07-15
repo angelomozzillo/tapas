@@ -141,41 +141,38 @@ def num_warmup_steps():
 
 def build_estimator(model_fn):
   """Builds a TPUEstimator using the common experiment flags."""
-  tpu_cluster_resolver = None
-  if FLAGS.use_tpu and FLAGS.tpu_name:
-    tpu_cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
-        FLAGS.tpu_name, zone=FLAGS.tpu_zone, project=FLAGS.gcp_project)
+  # tpu_cluster_resolver = None
+  # if FLAGS.use_tpu and FLAGS.tpu_name:
+  #   tpu_cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
+  #       FLAGS.tpu_name, zone=FLAGS.tpu_zone, project=FLAGS.gcp_project)
+  run_config = tf.estimator.RunConfig(
+        model_dir=FLAGS.model_dir,
+        tf_random_seed=FLAGS.tf_random_seed,
+        save_checkpoints_steps=FLAGS.save_checkpoints_steps,
+        keep_checkpoint_max=FLAGS.keep_checkpoint_max,
+        keep_checkpoint_every_n_hours=FLAGS.keep_checkpoint_every_n_hours
+    )
 
-  is_per_host = tf_estimator.tpu.InputPipelineConfig.PER_HOST_V2
-  run_config = tf_estimator.tpu.RunConfig(
-      cluster=tpu_cluster_resolver,
-      master=FLAGS.master,
-      model_dir=FLAGS.model_dir,
-      tf_random_seed=FLAGS.tf_random_seed,
-      save_checkpoints_steps=FLAGS.save_checkpoints_steps,
-      keep_checkpoint_max=FLAGS.keep_checkpoint_max,
-      keep_checkpoint_every_n_hours=FLAGS.keep_checkpoint_every_n_hours,
-      tpu_config=tf_estimator.tpu.TPUConfig(
-          iterations_per_loop=FLAGS.tpu_iterations_per_loop,
-          num_shards=FLAGS.num_tpu_cores,
-          per_host_input_for_training=is_per_host))
+  params = {
+        "gradient_accumulation_steps": FLAGS.gradient_accumulation_steps,
+        "drop_remainder": False,
+        "max_eval_count": FLAGS.max_eval_count,
+        "train_batch_size": FLAGS.train_batch_size // FLAGS.gradient_accumulation_steps,
+        "eval_batch_size": FLAGS.eval_batch_size,
+        "predict_batch_size": FLAGS.predict_batch_size,
+        "batch_size": FLAGS.train_batch_size // FLAGS.gradient_accumulation_steps,
+    }
+  
+  print(model_fn)
 
-  # If TPU is not available, this will fall back to normal Estimator on CPU
-  # or GPU.
-  return tf_estimator.tpu.TPUEstimator(
-      params={
-          "gradient_accumulation_steps": FLAGS.gradient_accumulation_steps,
-          "drop_remainder": FLAGS.use_tpu,
-          "max_eval_count": FLAGS.max_eval_count,},
-      use_tpu=FLAGS.use_tpu,
-      model_fn=model_fn,
-      config=run_config,
-      train_batch_size=FLAGS.train_batch_size // \
-          FLAGS.gradient_accumulation_steps,
-      eval_batch_size=FLAGS.eval_batch_size,
-      predict_batch_size=FLAGS.predict_batch_size)
-
-
+  return tf.estimator.Estimator(
+        model_fn=model_fn,
+        config=run_config,
+        params=params
+    )
+    
+    
+    
 def iterate_checkpoints(
     model_dir,
     marker_file_prefix,

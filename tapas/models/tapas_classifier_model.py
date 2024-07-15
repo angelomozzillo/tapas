@@ -31,7 +31,7 @@ from tapas.utils import span_prediction_utils
 from tapas.utils import table_pruning
 import tensorflow.compat.v1 as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
-import tensorflow_probability as tfp
+#import tensorflow_probability as tfp
 
 SpanPredictionMode = span_prediction_utils.SpanPredictionMode
 

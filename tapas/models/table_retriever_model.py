@@ -431,16 +431,7 @@ def model_fn_builder(config: RetrieverConfig):
        initialized_variable_names) = _get_assignment_map_from_checkpoint(
            tvars, init_checkpoint, config.init_from_single_encoder)
 
-      if config.use_tpu:
-
-        def tpu_scaffold():
-          for assignment_map in assignment_maps:
-            tf.train.init_from_checkpoint(init_checkpoint, assignment_map)
-          return tf.train.Scaffold()
-
-        scaffold_fn = tpu_scaffold
-      else:
-        for assignment_map in assignment_maps:
+      for assignment_map in assignment_maps:
           tf.train.init_from_checkpoint(init_checkpoint, assignment_map)
 
     tf.logging.info("**** Trainable Variables ****")
@@ -461,18 +452,16 @@ def model_fn_builder(config: RetrieverConfig):
           config.use_tpu,
           grad_clipping=config.grad_clipping)
 
-      output_spec = tf_estimator.tpu.TPUEstimatorSpec(
+      output_spec = tf_estimator.EstimatorSpec(
           mode=mode,
           loss=total_loss,
-          train_op=train_op,
-          scaffold_fn=scaffold_fn)
+          train_op=train_op)
     elif mode == tf_estimator.ModeKeys.EVAL:
       eval_metrics = (_calculate_eval_metrics_fn, [total_loss, logits, labels])
-      output_spec = tf_estimator.tpu.TPUEstimatorSpec(
+      output_spec = tf_estimator.EstimatorSpec(
           mode=mode,
           loss=total_loss,
-          eval_metrics=eval_metrics,
-          scaffold_fn=scaffold_fn)
+          eval_metrics=eval_metrics,)
     else:
       if config.use_mined_negatives:
         table_rep_gold, _ = tf.split(table_rep, num_or_size_splits=2, axis=0)
@@ -488,8 +477,8 @@ def model_fn_builder(config: RetrieverConfig):
         predictions["table_id"] = features["table_id"]
       if "question_id" in features:
         predictions["query_id"] = features["question_id"]
-      output_spec = tf_estimator.tpu.TPUEstimatorSpec(
-          mode=mode, predictions=predictions, scaffold_fn=scaffold_fn)
+      output_spec = tf_estimator.EstimatorSpec(
+          mode=mode, predictions=predictions)
     return output_spec
 
   return model_fn

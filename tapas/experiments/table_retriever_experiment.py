@@ -18,7 +18,7 @@ import csv
 import functools
 import os
 import traceback
-from typing import Text, Optional
+#from typing import Text, Optional
 
 from absl import app
 from absl import flags
@@ -215,7 +215,7 @@ def main(_):
       learning_rate=FLAGS.learning_rate,
       num_train_steps=total_steps,
       num_warmup_steps=experiment_utils.num_warmup_steps(),
-      use_tpu=FLAGS.use_tpu,
+      use_tpu=False,
       grad_clipping=FLAGS.grad_clipping,
       down_projection_dim=FLAGS.down_projection_dim,
       init_from_single_encoder=FLAGS.init_from_single_encoder,
@@ -227,9 +227,15 @@ def main(_):
       disabled_features=FLAGS.disabled_features,
       use_mined_negatives=FLAGS.use_mined_negatives,
   )
+  
+  print('Retriever Config------------------')
+  print(retriever_config)
 
   model_fn = table_retriever_model.model_fn_builder(retriever_config)
+  print('Model------------------')
+  
   estimator = experiment_utils.build_estimator(model_fn)
+  print('Estimator--------------')
 
   if FLAGS.do_train:
     tf.io.gfile.makedirs(FLAGS.model_dir)
@@ -246,7 +252,9 @@ def main(_):
         compression_type=FLAGS.compression_type,
         use_mined_negatives=FLAGS.use_mined_negatives,
         include_id=False)
+    print('train input------------')
     estimator.train(input_fn=train_input_fn, max_steps=total_steps)
+    print('train------------')
 
   eval_input_fn = _get_test_input_fn("eval", FLAGS.input_file_eval)
   if FLAGS.do_eval:

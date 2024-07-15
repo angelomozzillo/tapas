@@ -33,7 +33,7 @@ from tapas.utils import text_index
 from tapas.utils import text_utils
 import tensorflow.compat.v1 as tf
 
-from official.nlp.bert import tokenization
+from official.nlp.tools import tokenization
 
 _NS = 'main'
 _CLS = '[CLS]'
